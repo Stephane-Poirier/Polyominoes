@@ -1,0 +1,2 @@
+# Polyominoes
+polyominoes computations
