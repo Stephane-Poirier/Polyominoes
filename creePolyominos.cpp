@@ -770,6 +770,7 @@ static void * Thread_Add_Element(void *arg) {
 
     Add_Element_Array(tinfo->array, tinfo->extMax, tinfo->thread_num);
     tinfo->time = time(NULL) - td;
+    return NULL;
 }
 
 int Create_Polyominos(const int size) {
@@ -985,9 +986,15 @@ void ComputeSeries(const int polyoSize)
     PInv(pInv, &nbHook[0][0][0][0], 0, 2, seriesSize);
     Mult(tmp2, &nbHook[0][0][0][0], pInv, seriesSize);
 
-    for (h = 0; h < seriesSize;h++) {
+    printf("exact polyominos number : \n");
+    for (h = 1; h <= polyoSize;h++) {
         printf(" %llu ", tmp2[h]);
     }
+    printf("\napproximated polyominos number : \n");
+    for (h = polyoSize+1; h < seriesSize;h++) {
+        printf(" %llu ", tmp2[h]);
+    }
+    printf("\n");
 }
 
 
@@ -996,7 +1003,7 @@ int main(int argc, char *argv[])
     int status = OK;
     time_t td = time(NULL);
     time_t tf;
-    int max = 15;
+    int max = 16;
     int t,s;
 
 //Init_Debug();
