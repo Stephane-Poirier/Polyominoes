@@ -1,0 +1,299 @@
+Calcul des polyominos de taille 15
+----
+............................ 1..                          |
+                      .. 4 3 2..                          |
+                    XX 7 6 5..                            |
+                      XXXX..                              |
+  slice[12] = (0, 128, -1, 1, 0)
+  slice[13] = (2, 11, 12, 0, 0)
+  slice[14] = (3, 12, 14, 1, 0)
+  slice[15] = (2, 13, 14, 1, 0)
+  slice[16] = (0, 128, -1, 0, 0)
+----
+ fh 2, lh 2 (0)
+----
+............................ 1 2 4..                      |
+                        .. 6 3 5..                        |
+                        XX 7....                          |
+                          XX                              |
+  slice[13] = (0, 128, -1, 0, 0)
+  slice[14] = (2, 13, 14, 1, 0)
+  slice[15] = (3, 13, 15, 0, 0)
+  slice[16] = (2, 15, 16, 1, 0)
+  slice[17] = (0, 128, -1, 0, 0)
+----
+ fh 2, lh 2 (0)
+----
+............................ 1..                          |
+                        .. 3 2..                          |
+                        .. 4..                            |
+                      .. 6 5..                            |
+                      XX 7..                              |
+                        XX                                |
+  slice[13] = (0, 128, -1, 0, 0)
+  slice[14] = (2, 13, 14, 0, 0)
+  slice[15] = (3, 12, 14, 1, 0)
+  slice[16] = (2, 12, 13, 0, 0)
+  slice[17] = (0, 128, -1, 1, 0)
+----
+ fh 2, lh 2 (0)
+----
+............................ 1 2..                        |
+                      .. 5 4 3..                          |
+                    XX 7 6....                            |
+                      XXXX                                |
+  slice[12] = (0, 128, -1, 1, 0)
+  slice[13] = (2, 11, 12, 0, 0)
+  slice[14] = (3, 12, 14, 1, 0)
+  slice[15] = (2, 14, 15, 1, 0)
+  slice[16] = (0, 128, -1, 0, 0)
+----
+ fh 2, lh 2 (0)
+----
+............................ 1 2..                        |
+                        .. 4 3..                          |
+                        .. 6 5..                          |
+                        XX 7..                            |
+                          XX                              |
+  slice[13] = (0, 128, -1, 0, 0)
+  slice[14] = (2, 13, 14, 0, 0)
+  slice[15] = (3, 13, 15, 1, 0)
+  slice[16] = (2, 13, 14, 0, 0)
+  slice[17] = (0, 128, -1, 1, 0)
+----
+ fh 2, lh 2 (0)
+----
+............................ 1..                          |
+                        .. 3 2..                          |
+                        .. 5 4..                          |
+                      XX 7 6..                            |
+                        XXXX                              |
+  slice[13] = (0, 128, -1, 0, 0)
+  slice[14] = (2, 13, 14, 1, 0)
+  slice[15] = (3, 12, 14, 0, 0)
+  slice[16] = (2, 13, 14, 1, 0)
+  slice[17] = (0, 128, -1, 1, 0)
+----
+ fh 2, lh 2 (0)
+Thread 0 (1 sec)
+taille des polyominos : 3
+   nb All : 3
+   nb Irreductible : 1
+   nb MM : 0
+taille des polyominos : 4
+   nb All : 9
+   nb Irreductible : 2
+   nb MM : 0
+taille des polyominos : 5
+   nb All : 29
+   nb Irreductible : 8
+   nb MM : 0
+taille des polyominos : 6
+   nb All : 97
+   nb Irreductible : 28
+   nb MM : 0
+taille des polyominos : 7
+   nb All : 335
+   nb Irreductible : 94
+   nb MM : 1
+taille des polyominos : 8
+   nb All : 1183
+   nb Irreductible : 327
+   nb MM : 3
+taille des polyominos : 9
+   nb All : 3881
+   nb Irreductible : 1163
+   nb MM : 20
+taille des polyominos : 10
+   nb All : 12000
+   nb Irreductible : 4040
+   nb MM : 83
+taille des polyominos : 11
+   nb All : 36253
+   nb Irreductible : 13556
+   nb MM : 373
+taille des polyominos : 12
+   nb All : 106017
+   nb Irreductible : 43701
+   nb MM : 1510
+taille des polyominos : 13
+   nb All : 284965
+   nb Irreductible : 135182
+   nb MM : 6029
+taille des polyominos : 14
+   nb All : 649256
+   nb Irreductible : 401526
+   nb MM : 23528
+taille des polyominos : 15
+   nb All : 2381533
+   nb Irreductible : 1491362
+   nb MM : 91153
+Thread 1 (1 sec)
+taille des polyominos : 3
+   nb All : 3
+   nb Irreductible : 1
+   nb MM : 0
+taille des polyominos : 4
+   nb All : 10
+   nb Irreductible : 1
+   nb MM : 0
+taille des polyominos : 5
+   nb All : 34
+   nb Irreductible : 5
+   nb MM : 0
+taille des polyominos : 6
+   nb All : 119
+   nb Irreductible : 18
+   nb MM : 0
+taille des polyominos : 7
+   nb All : 425
+   nb Irreductible : 66
+   nb MM : 1
+taille des polyominos : 8
+   nb All : 1542
+   nb Irreductible : 246
+   nb MM : 7
+taille des polyominos : 9
+   nb All : 5192
+   nb Irreductible : 913
+   nb MM : 28
+taille des polyominos : 10
+   nb All : 16126
+   nb Irreductible : 3323
+   nb MM : 131
+taille des polyominos : 11
+   nb All : 47196
+   nb Irreductible : 11592
+   nb MM : 537
+taille des polyominos : 12
+   nb All : 132496
+   nb Irreductible : 39525
+   nb MM : 2196
+taille des polyominos : 13
+   nb All : 343731
+   nb Irreductible : 128834
+   nb MM : 8675
+taille des polyominos : 14
+   nb All : 738996
+   nb Irreductible : 400903
+   nb MM : 33984
+taille des polyominos : 15
+   nb All : 2662709
+   nb Irreductible : 1502636
+   nb MM : 132048
+taille des polyominos : 3
+   nb All : 6
+   nb Irreductible : 2
+taille des polyominos : 4
+   nb All : 19
+   nb Irreductible : 3
+taille des polyominos : 5
+   nb All : 63
+   nb Irreductible : 13
+taille des polyominos : 6
+   nb All : 216
+   nb Irreductible : 46
+taille des polyominos : 7
+   nb All : 760
+   nb Irreductible : 160
+taille des polyominos : 8
+   nb All : 2725
+   nb Irreductible : 573
+taille des polyominos : 9
+   nb All : 9073
+   nb Irreductible : 2076
+taille des polyominos : 10
+   nb All : 28126
+   nb Irreductible : 7363
+taille des polyominos : 11
+   nb All : 83449
+   nb Irreductible : 25148
+taille des polyominos : 12
+   nb All : 238513
+   nb Irreductible : 83226
+taille des polyominos : 13
+   nb All : 628696
+   nb Irreductible : 264016
+taille des polyominos : 14
+   nb All : 1388252
+   nb Irreductible : 802429
+taille des polyominos : 15
+   nb All : 5044242
+   nb Irreductible : 2993998
+ first hook 0 last hook 0:  1 0 0 0 0 0 2 10 48 214 910 3706 14704 57512 223201
+ first hook 0 last hook 1:  0 0 0 0 1 2 7 28 106 387 1421 5273 19703 73921 278374
+ first hook 0 last hook 2:  0 0 0 0 0 2 5 16 57 200 702 2494 8997 32837 120912
+ first hook 0 last hook 3:  0 0 0 0 0 0 1 6 18 57 183 617 2106 7313 25828
+ first hook 0 last hook 4:  0 0 0 0 0 0 0 0 3 14 44 138 454 1530 5214
+ first hook 0 last hook 5:  0 0 0 0 0 0 0 0 0 0 6 27 86 278 945
+ first hook 0 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 0 10 46 148
+ first hook 0 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 16
+
+ first hook 1 last hook 0:  0 0 0 0 1 2 7 28 106 387 1421 5273 19703 73921 278374
+ first hook 1 last hook 1:  0 0 0 0 2 4 12 45 154 538 1916 6893 25060 91914 339768
+ first hook 1 last hook 2:  0 0 1 0 0 4 8 22 76 260 900 3156 11220 40363 146543
+ first hook 1 last hook 3:  0 0 0 0 0 0 4 7 18 61 208 694 2392 8405 29864
+ first hook 1 last hook 4:  0 0 0 0 0 0 0 2 6 12 40 146 478 1608 5586
+ first hook 1 last hook 5:  0 0 0 0 0 0 0 0 0 3 8 19 78 285 944
+ first hook 1 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 4 10 28 134
+ first hook 1 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 5 12
+
+ first hook 2 last hook 0:  0 0 0 0 0 2 5 16 57 200 702 2494 8997 32837 120912
+ first hook 2 last hook 1:  0 0 1 0 0 4 8 22 76 260 900 3156 11220 40363 146543
+ first hook 2 last hook 2:  0 0 0 2 0 0 6 14 38 124 420 1445 5016 17712 63350
+ first hook 2 last hook 3:  0 0 0 0 1 0 0 4 10 26 90 305 1034 3570 12560
+ first hook 2 last hook 4:  0 0 0 0 0 0 0 0 2 8 15 52 192 655 2268
+ first hook 2 last hook 5:  0 0 0 0 0 0 0 0 0 0 4 10 22 91 346
+ first hook 2 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 0 5 12 31
+ first hook 2 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 6
+
+ first hook 3 last hook 0:  0 0 0 0 0 0 1 6 18 57 183 617 2106 7313 25828
+ first hook 3 last hook 1:  0 0 0 0 0 0 4 7 18 61 208 694 2392 8405 29864
+ first hook 3 last hook 2:  0 0 0 0 1 0 0 4 10 26 90 305 1034 3570 12560
+ first hook 3 last hook 3:  0 0 0 0 0 2 0 0 0 6 12 49 176 638 2244
+ first hook 3 last hook 4:  0 0 0 0 0 0 1 0 0 0 4 8 20 82 332
+ first hook 3 last hook 5:  0 0 0 0 0 0 0 0 0 0 0 2 8 9 26
+ first hook 3 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 0 0 4 10
+ first hook 3 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ first hook 4 last hook 0:  0 0 0 0 0 0 0 0 3 14 44 138 454 1530 5214
+ first hook 4 last hook 1:  0 0 0 0 0 0 0 2 6 12 40 146 478 1608 5586
+ first hook 4 last hook 2:  0 0 0 0 0 0 0 0 2 8 15 52 192 655 2268
+ first hook 4 last hook 3:  0 0 0 0 0 0 1 0 0 0 4 8 20 82 332
+ first hook 4 last hook 4:  0 0 0 0 0 0 0 2 0 0 0 0 6 10 28
+ first hook 4 last hook 5:  0 0 0 0 0 0 0 0 1 0 0 0 0 4 8
+ first hook 4 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 2
+ first hook 4 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ first hook 5 last hook 0:  0 0 0 0 0 0 0 0 0 0 6 27 86 278 945
+ first hook 5 last hook 1:  0 0 0 0 0 0 0 0 0 3 8 19 78 285 944
+ first hook 5 last hook 2:  0 0 0 0 0 0 0 0 0 0 4 10 22 91 346
+ first hook 5 last hook 3:  0 0 0 0 0 0 0 0 0 0 0 2 8 9 26
+ first hook 5 last hook 4:  0 0 0 0 0 0 0 0 1 0 0 0 0 4 8
+ first hook 5 last hook 5:  0 0 0 0 0 0 0 0 0 2 0 0 0 0 0
+ first hook 5 last hook 6:  0 0 0 0 0 0 0 0 0 0 1 0 0 0 0
+ first hook 5 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ first hook 6 last hook 0:  0 0 0 0 0 0 0 0 0 0 0 0 10 46 148
+ first hook 6 last hook 1:  0 0 0 0 0 0 0 0 0 0 0 4 10 28 134
+ first hook 6 last hook 2:  0 0 0 0 0 0 0 0 0 0 0 0 5 12 31
+ first hook 6 last hook 3:  0 0 0 0 0 0 0 0 0 0 0 0 0 4 10
+ first hook 6 last hook 4:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 2
+ first hook 6 last hook 5:  0 0 0 0 0 0 0 0 0 0 1 0 0 0 0
+ first hook 6 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 2 0 0 0
+ first hook 6 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+
+ first hook 7 last hook 0:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 16
+ first hook 7 last hook 1:  0 0 0 0 0 0 0 0 0 0 0 0 0 5 12
+ first hook 7 last hook 2:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 6
+ first hook 7 last hook 3:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ first hook 7 last hook 4:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ first hook 7 last hook 5:  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ first hook 7 last hook 6:  0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+ first hook 7 last hook 7:  0 0 0 0 0 0 0 0 0 0 0 0 0 2 0
+
+time 1
+ first hook 0 last hook 0 :  1 0 2 3 11 32 108 363 1258 4424 15792 57013 207854 764066 2828774 5387535
+
+ 0  1  2  6  19  63  216  760  2725  9910  36446  135268  505861  1903890  7204874  27394666  99442617 
+ 2147483647

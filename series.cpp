@@ -31,7 +31,7 @@ void Mult3(unsigned long long *ptrOut, const unsigned long long *ptrOp1, const u
 
     for (i1 = 0; i1 < nb; i1++) {
         for (i2 = 0; i2 < nb-i1; i2++) {
-            for (i3 = 0; i3 < nb-i1-i2;i3) {
+            for (i3 = 0; i3 < nb-i1-i2; i3++) {
                 ptrOut[i1+i2+i3] += ptrOp1[i1] * ptrOp2[i2] * ptrOp3[i3];
             }
         }
@@ -43,10 +43,16 @@ void Mult3Add(unsigned long long *ptrOut, const unsigned long long *ptrOp1, cons
     int i, i1, i2, i3;
 
     for (i1 = 0; i1 < nb; i1++) {
+        if (ptrOp1[i1] == 0) continue;
+
         for (i2 = 0; i2 < nb; i2++) {
-            for (i3 = 0; i3 < nb;i3++) {
-                    if (i1+i2+i3-offset<nb)
-                        ptrOut[i1+i2+i3-offset] += ptrOp1[i1] * ptrOp2[i2] * ptrOp3[i3];
+            int begin_i3 = (0 > offset-i1-i2) ? 0 : offset-i1-i2;
+            int end_i3 = (nb <= nb+offset-i1-i2) ? nb : nb+offset-i1-i2;
+
+            if (ptrOp2[i2] == 0) continue;
+
+            for (i3 = begin_i3; i3 < end_i3; i3++) {
+                ptrOut[i1+i2+i3-offset] += ptrOp1[i1] * ptrOp2[i2] * ptrOp3[i3];
             }
         }
     }

@@ -1,0 +1,16 @@
+# depslib dependency file v1.0
+1547928893 source:/Users/poirier/Documents/perso/git/Polyominoes/series.cpp
+	<stdio.h>
+	<stdlib.h>
+
+1556974366 source:/Users/poirier/Documents/perso/git/Polyominoes/creePolyominos.cpp
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<time.h>
+	<pthread.h>
+	<limits.h>
+	"series.hpp"
+
+1547928893 /Users/poirier/Documents/perso/git/Polyominoes/series.hpp
+

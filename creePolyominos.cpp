@@ -18,7 +18,7 @@
 
 #define FIRST_TEST 3
 #define SIZE_NUMBER_ARRAY 64
-#define LIMIT_HOOK 4
+#define LIMIT_HOOK 7
 
 #define NB_THREADS 2
 
