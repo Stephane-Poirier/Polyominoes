@@ -4,6 +4,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <limits.h>
+#include <math.h>
 
 #include "series.hpp"
 
@@ -1002,7 +1003,7 @@ void ComputeSeries(const int polyoSize)
     unsigned long long tmp[SIZE_NUMBER_ARRAY];
     unsigned long long tmp2[SIZE_NUMBER_ARRAY];
     unsigned long long pInv[SIZE_NUMBER_ARRAY];
-    int seriesSize = polyoSize+1 + 1;
+    int seriesSize = SIZE_NUMBER_ARRAY;
 
     for (h = 0; h < SIZE_NUMBER_ARRAY;h++) {
         tmp[h] = 0;
@@ -1046,9 +1047,13 @@ void ComputeSeries(const int polyoSize)
         if (h == 1) {
         for (fh = 0; fh < h; fh++) {
             for (lh = 0; lh < h; lh++) {
-                printf(" first hook %d last hook %d : ", fh, lh);
-                for (i = 1; i < seriesSize; i++)
-                    printf(" %llu", nbHook[0][fh][lh][i]);
+                printf(" first hook %d last hook %d (irreducible polyominoes) : ", fh, lh);
+                printf("  exacts :\n");
+                for (i = 1; i <= polyoSize; i++)
+                    printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
+                printf("  approximated :\n");
+                for (i = polyoSize+1; i < seriesSize; i++)
+                    printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
                 printf("\n");
             }
             printf("\n");
@@ -1064,7 +1069,7 @@ void ComputeSeries(const int polyoSize)
     }
     printf("\napproximated polyominos number : \n");
     for (h = polyoSize+1; h < seriesSize;h++) {
-        printf(" %llu ", tmp2[h]);
+        printf(" %d : %llu (%f)\n", h, tmp2[h], pow(tmp2[h], 1./h));
     }
     printf("\n");
 }
@@ -1077,6 +1082,13 @@ int main(int argc, char *argv[])
     time_t tf;
     int max = 18;
     int t,s;
+
+    if (argc >= 2) {
+        int input_max = atoi(argv[1]);
+
+        if (input_max > 0)
+            max = input_max;
+    }
 
 //Init_Debug();
     for (t = 0; t < NB_THREADS; t++) {
@@ -1096,7 +1108,8 @@ int main(int argc, char *argv[])
     printf("time %ld\n", tf-td);
 
     ComputeSeries(max);
-    t = INT_MAX/*ULONG_LONG_MAX*/;
-printf("\n %llu\n",t);
+    //unsigned long long t_llu = ULONG_LONG_MAX;
+    //printf("\n %llu\n",t_llu);
+    
     return status;
 }
