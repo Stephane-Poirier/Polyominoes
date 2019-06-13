@@ -18,7 +18,7 @@
 
 #define FIRST_TEST 3
 #define SIZE_NUMBER_ARRAY 64
-#define LIMIT_HOOK 7
+#define LIMIT_HOOK 8
 
 #define NB_THREADS 2
 
@@ -49,6 +49,8 @@ typedef struct {
     int maxY;
     int minX;
     int maxX;
+    int *minX_tab;
+    int *maxX_tab;
     int firstSlice;
     int lastSlice;
 } ARRAY;
@@ -70,6 +72,9 @@ ARRAY *Create_Array(const int targetSize) {
     array->nbSlices = array->nbCol+array->nbLig - 1;
     array->slices = (SLICE *) malloc(sizeof(SLICE) * array->nbSlices);
 
+    array->minX_tab = (int *) malloc(sizeof(int) * array->nbLig);
+    array->maxX_tab = (int *) malloc(sizeof(int) * array->nbLig);
+
     if (array->tabLig == NULL) {
         printf("Impossible d'allouer tab de taille %d char*\n", array->nbLig);
     }
@@ -78,6 +83,12 @@ ARRAY *Create_Array(const int targetSize) {
     }
     else if (array->slices == NULL) {
         printf("Impossible d'allouer slices de taille %d SLICES\n", array->nbSlices);
+    }
+    else if (array->minX_tab == NULL) {
+        printf("Impossible d'allouer minX_tab de taille %d int\n", array->nbLig);
+    }
+    else if (array->maxX_tab == NULL) {
+        printf("Impossible d'allouer maxX_tab de taille %d int\n", array->nbLig);
     }
     else {
         int i;
@@ -124,6 +135,9 @@ int Copy_Array(ARRAY *arrayOut, ARRAY *arrayIn) {
     arrayOut->lastSlice = arrayIn->lastSlice;
 
     memcpy(arrayOut->slices, arrayIn->slices, arrayOut->nbSlices*sizeof(SLICE));
+
+    memcpy(arrayOut->minX_tab, arrayIn->minX_tab, arrayOut->nbLig*sizeof(int));
+    memcpy(arrayOut->maxX_tab, arrayIn->maxX_tab, arrayOut->nbLig*sizeof(int));
 
     return status;
 }
@@ -173,6 +187,11 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
         printf("  slice[%d] = (%d, %d, %d, %d, %d)\n", x, array->slices[x].cellsNb, array->slices[x].firstX,
                array->slices[x].lastX, array->slices[x].nbExt, array->slices[x].nextTransitionReductible);
     }
+
+    printf("\n minX = %d, maxX = %d\n", array->minX, array->maxX);
+    for (y = 0; y < array->nbLig; y++) {
+        printf("  minX[%d] = %d, maxX[%d] = %d\n", y, array->minX_tab[y], y, array->maxX_tab[y]);
+    }
     printf("----\n");
 }
 
@@ -209,7 +228,7 @@ int IsArray_Debug(ARRAY *array)
         return FALSE;
 }
 
-#define RUN_DEBUG
+#undef RUN_DEBUG
 void Test_Debug(ARRAY *array) {
     int size = array->targetSize;
     int t;
@@ -257,6 +276,9 @@ void Trace_Debug(int max) {
 void Destroy_Array(ARRAY *array) {
     free(array->tabLig);
     free(array->buffer);
+    free(array->slices);
+    free(array->minX_tab);
+    free(array->maxX_tab);
     free(array);
 
     return;
@@ -383,8 +405,8 @@ void Test_Array(ARRAY *array, int idThread) {
             }
             nbHook[idThread][sizeFirstHook][sizeLastHook][nbCells]++;
 
-            if (nbCells == 7 &&
-                (sizeFirstHook==2 && sizeLastHook==2)) {
+            if (nbCells == 1336 &&
+                (sizeFirstHook==1 && sizeLastHook==1)) {
                 Print_Tableau(array, TRUE);
                 printf(" fh %d, lh %d (%ld)\n", sizeFirstHook, sizeLastHook, nbHook[idThread][nbCells][sizeFirstHook][sizeLastHook]);
             }
@@ -637,6 +659,35 @@ void UpdateSlice(ARRAY *array, int y, int x) {
 
 }
 
+#define MIN3(a, b, c) ((a) < (b) ? (((a) < (c)) ? (a) : (c)) : (((b) < (c)) ? (b) : (c)))
+#define MAX3(a, b, c) ((a) > (b) ? (((a) > (c)) ? (a) : (c)) : (((b) > (c)) ? (b) : (c)))
+
+void get_x_limits(ARRAY *array, int y, int *begin, int *end) {
+    if (array->maxY == 0) {
+        *begin = array->minX_tab[0]-1;
+        *end =  array->maxX_tab[0]+1;
+    }
+    else {
+        if (y > 0 && y < array->maxY) {
+            *begin = MIN3(array->minX_tab[y]-1, array->minX_tab[y-1], array->minX_tab[y+1]);
+            *end   = MAX3(array->maxX_tab[y]+1, array->maxX_tab[y-1], array->maxX_tab[y+1]);
+        }
+        else if (y == 0) {
+            *begin = (array->minX_tab[0] <= array->minX_tab[1]) ? array->minX_tab[0]-1 : array->minX_tab[1];
+            *end = (array->maxX_tab[0] >= array->maxX_tab[1]) ? array->maxX_tab[0]+1 : array->maxX_tab[1];
+        }
+        else if (y == array->maxY+1) {
+            *begin = array->minX_tab[y-1];
+            *end  = array->maxX_tab[y-1];
+        }
+        else if (y == array->maxY) {
+            *begin = (array->minX_tab[y] <= array->minX_tab[y-1]) ? array->minX_tab[y]-1 : array->minX_tab[y-1];
+            *end = (array->maxX_tab[y] >= array->maxX_tab[y-1]) ? array->maxX_tab[y]+1 : array->maxX_tab[y-1];
+        }
+    }
+    return;
+}
+
 int Add_Element_Array(ARRAY *arrayIn, int extMaxIn, int idThread) {
     int status = OK;
     int x, y;
@@ -654,7 +705,11 @@ int Add_Element_Array(ARRAY *arrayIn, int extMaxIn, int idThread) {
 
         arrayIn->polySize++;
         for (y = 0; y <= arrayIn->maxY+1; y++) {
-            for (x = arrayIn->minX-1; x <= arrayIn->maxX+1; x++) {
+            //for (x = arrayIn->minX-1; x <= arrayIn->maxX+1; x++) {
+            int beg_x, end_x;
+
+            get_x_limits(arrayIn, y, &beg_x, &end_x);
+            for (x = beg_x; x <= end_x; x++) {
                 if (arrayIn->tabLig[y][x] < 0) {
                     int v = arrayIn->tabLig[y][x];
 
@@ -678,78 +733,90 @@ int Add_Element_Array(ARRAY *arrayIn, int extMaxIn, int idThread) {
     else
         {
         ARRAY *arrayNv = arrayList[idThread][arrayIn->polySize+1]; // Create_Array(arrayIn->nbLig);
+        int xx, yy;
+        int beg_x[SIZE_NUMBER_ARRAY], end_x[SIZE_NUMBER_ARRAY];
 
-        {
-            int xx, yy;
+        for (y = 0; y <= arrayIn->maxY+1; y++) {
+            get_x_limits(arrayIn, y, &beg_x[y], &end_x[y]);
+        }
 
-            for (y = 0; y <= arrayIn->maxY+1; y++) {
-                for (x = arrayIn->minX-1; x <= arrayIn->maxX+1; x++) {
-                    int tooMuchSlices = FALSE;
-                //for (x = arrayIn->nbLig-(arrayIn->sizePoly-y+1); x < arrayIn->nbLig+(arrayIn->sizePoly-y+1); x++) {
-                    if (arrayIn->tabLig[y][x] < 0) {
-                        int extMax = extMaxIn;
-                        char inVal = arrayIn->tabLig[y][x];
+        for (y = 0; y <= arrayIn->maxY+1; y++) {
 
-                        status = Copy_Array(arrayNv, arrayIn);
+            //for (x = arrayIn->minX-1; x <= arrayIn->maxX+1; x++) {
+            for (x = beg_x[y]; x <= end_x[y]; x++) {
+                int tooMuchSlices = FALSE;
 
-                        for (yy = 0; yy <= arrayIn->maxY+1; yy++) {
-                            //for (xx = arrayIn->nbLig-(arrayIn->sizePoly-yy+1); xx < arrayIn->nbLig+(arrayIn->sizePoly-yy+1); xx++) {
-                            for (xx = arrayIn->minX-1; xx <= arrayIn->maxX+1; xx++) {
-                                if (arrayNv->tabLig[yy][xx] < 0 && arrayNv->tabLig[yy][xx] > inVal) {
-                                    arrayNv->tabLig[yy][xx] = NEUTRALISE;
-                                    arrayNv->slices[yy+xx].nbExt--;
-                                }
+                if (arrayIn->tabLig[y][x] < 0) {
+                    int extMax = extMaxIn;
+                    char inVal = arrayIn->tabLig[y][x];
+
+                    status = Copy_Array(arrayNv, arrayIn);
+
+                    for (yy = 0; yy <= arrayIn->maxY+1; yy++) {
+                        for (xx = beg_x[yy]; xx <= end_x[yy]; xx++) {
+                        //for (xx = arrayIn->minX-1; xx <= arrayIn->maxX+1; xx++) {
+                        
+                            if (arrayNv->tabLig[yy][xx] < 0 && arrayNv->tabLig[yy][xx] > inVal) {
+                                arrayNv->tabLig[yy][xx] = NEUTRALISE;
+                                arrayNv->slices[yy+xx].nbExt--;
                             }
                         }
+                    }
 
-                        arrayNv->tabLig[y][x] = arrayIn->polySize + 1;
-                        arrayNv->slices[y+x].nbExt--;
-                        arrayNv->polySize = arrayIn->polySize + 1;
-                        if (y > arrayNv->maxY) arrayNv->maxY = y;
-                        if (x > arrayNv->maxX) arrayNv->maxX = x;
-                        else if (x < arrayNv->minX) arrayNv->minX = x;
+                    arrayNv->tabLig[y][x] = arrayIn->polySize + 1;
+                    arrayNv->slices[y+x].nbExt--;
+                    arrayNv->polySize = arrayIn->polySize + 1;
+                    if (y > arrayNv->maxY) {
+                        arrayNv->maxY = y;
+                        arrayNv->minX_tab[y] = arrayNv->maxX_tab[y] = x;
+                    }
+                    if (x > arrayNv->maxX) arrayNv->maxX = x;
+                    else if (x < arrayNv->minX) arrayNv->minX = x;
 
-                        UpdateSlice(arrayNv, y, x);
+                    if (x > arrayNv->maxX_tab[y]) arrayNv->maxX_tab[y] = x;
+                    else if (x < arrayNv->minX_tab[y]) arrayNv->minX_tab[y] = x;
+
+                    UpdateSlice(arrayNv, y, x);
 
 //Print_Tableau(arrayNv->tabLig, arrayNv->nbLig, TRUE);
-                        xx = x;
-                        yy = y - 1;
-                        if (yy >= 0 && arrayNv->tabLig[yy][xx] == VIDE) {
-                            extMax++;
-                            arrayNv->tabLig[yy][xx] = -extMax;
-                            arrayNv->slices[yy+xx].nbExt++;
-                        }
-                        xx = x - 1;
-                        yy = y;
-                        if (xx >= 0 && arrayNv->tabLig[yy][xx] == VIDE) {
-                            extMax++;
-                            arrayNv->tabLig[yy][xx] = -extMax;
-                            arrayNv->slices[yy+xx].nbExt++;
-                        }
-                        xx = x + 1;
-                        yy = y;
-                        if (xx < arrayNv->nbCol && arrayNv->tabLig[yy][xx] == VIDE) {
-                            extMax++;
-                            arrayNv->tabLig[yy][xx] = -extMax;
-                            arrayNv->slices[yy+xx].nbExt++;
-                        }
-                        xx = x;
-                        yy = y + 1;
-                        if (yy < arrayIn->nbLig && arrayNv->tabLig[yy][xx] == VIDE) {
-                            extMax++;
-                            arrayNv->tabLig[yy][xx] = -extMax;
-                            arrayNv->slices[yy+xx].nbExt++;
-                        }
-
-                        tooMuchSlices = Limits_Array(arrayNv, x+y);
-                        if (tooMuchSlices == TRUE)
-                            continue;
-
-                        status = Add_Element_Array(arrayNv, extMax, idThread);
+                    xx = x;
+                    yy = y - 1;
+                    if (yy >= 0 && arrayNv->tabLig[yy][xx] == VIDE) {
+                        extMax++;
+                        arrayNv->tabLig[yy][xx] = -extMax;
+                        arrayNv->slices[yy+xx].nbExt++;
                     }
+                    xx = x - 1;
+                    yy = y;
+                    if (xx >= 0 && arrayNv->tabLig[yy][xx] == VIDE) {
+                        extMax++;
+                        arrayNv->tabLig[yy][xx] = -extMax;
+                        arrayNv->slices[yy+xx].nbExt++;
+                    }
+                    xx = x + 1;
+                    yy = y;
+                    if (xx < arrayNv->nbCol && arrayNv->tabLig[yy][xx] == VIDE) {
+                        extMax++;
+                        arrayNv->tabLig[yy][xx] = -extMax;
+                        arrayNv->slices[yy+xx].nbExt++;
+                    }
+                    xx = x;
+                    yy = y + 1;
+                    if (yy < arrayIn->nbLig && arrayNv->tabLig[yy][xx] == VIDE) {
+                        extMax++;
+                        arrayNv->tabLig[yy][xx] = -extMax;
+                        arrayNv->slices[yy+xx].nbExt++;
+                    }
+
+                    tooMuchSlices = Limits_Array(arrayNv, x+y);
+                    if (tooMuchSlices == TRUE)
+                        continue;
+
+                    status = Add_Element_Array(arrayNv, extMax, idThread);
                 }
             }
         }
+
     }
 
     return status;
@@ -803,6 +870,7 @@ int Create_Polyominos(const int size) {
         array->slices[0+size-1].nextTransitionReductible = FALSE;
         array->maxY = 0;
         array->maxX = array->minX = size-1;
+        array->minX_tab[0] = array->maxX_tab[0] = size-1;
         array->firstSlice = array->lastSlice = size - 1;
         array->tabLig[0][size] = -2;
         array->tabLig[1][size-1] = -3;
@@ -830,6 +898,8 @@ int Create_Polyominos(const int size) {
         array->maxY = 0;
         array->minX = size-1;
         array->maxX = size;
+        array->minX_tab[0] = size-1;
+        array->maxX_tab[0] = size;
         array->firstSlice = size - 1;
         array->lastSlice  = size;
         array->tabLig[0][size+1] = -4;
@@ -861,6 +931,8 @@ int Create_Polyominos(const int size) {
         array->maxY = 1;
         array->minX = size-1;
         array->maxX = size-1;
+        array->minX_tab[0] = array->minX_tab[1] = size-1;
+        array->maxX_tab[0] = array->maxX_tab[1] = size-1;
         array->firstSlice = size - 1;
         array->lastSlice  = size;
         array->tabLig[0][size] = NEUTRALISE;
@@ -1003,7 +1075,7 @@ int main(int argc, char *argv[])
     int status = OK;
     time_t td = time(NULL);
     time_t tf;
-    int max = 16;
+    int max = 18;
     int t,s;
 
 //Init_Debug();
