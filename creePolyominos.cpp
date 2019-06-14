@@ -400,8 +400,8 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
             }
             nbHook[idThread][sizeFirstHook][sizeLastHook][nbCells]++;
 
-            if (nbCells == 11 &&
-                (sizeFirstHook==4 && sizeLastHook==3)) {
+            if (nbCells == 6 &&
+                (sizeFirstHook==1 && sizeLastHook==0)) {
                 Print_Tableau(array, TRUE);
                 printf(" fh %d, lh %d (%ld)\n", sizeFirstHook, sizeLastHook, nbHook[idThread][nbCells][sizeFirstHook][sizeLastHook]);
             }
@@ -904,14 +904,13 @@ int Create_Polyominos(const int size) {
         }
     }
 
-
     for (i = FIRST_TEST; i <= size; i++) {
         printf("taille des polyominos : %d\n", i);
         for (t = 1; t < NB_THREADS; t++) {
             nbAll[0][i] += nbAll[t][i];
             nbIrr[0][i] += nbIrr[t][i];
-            for (hf = 0; hf <= LIMIT_HOOK_ARRAY; hf++) {
-                for (hl = 0; hl <= LIMIT_HOOK_ARRAY; hl++) {
+            for (hf = 0; hf < LIMIT_HOOK_ARRAY; hf++) {
+                for (hl = 0; hl < LIMIT_HOOK_ARRAY; hl++) {
                     nbHook[0][hf][hl][i] += nbHook[t][hf][hl][i];
                 }
             }
@@ -932,6 +931,20 @@ int Create_Polyominos(const int size) {
         printf("\n");
     }
     return status;
+}
+
+void AddHooksToExactCount(const int polyoSize) {
+    const int limitHook = (polyoSize+1)/2;
+    int h, fh, lh, i;
+
+    for (h = limitHook-1; h < LIMIT_HOOK_ARRAY; h++) {
+        nbHook[0][h][h-1][h+h-1] = 1;
+        nbHook[0][h][h][h+h] = 2;
+        if (h < LIMIT_HOOK_ARRAY-1)
+            nbHook[0][h][h+1][h+h+1] = 1;
+    }
+
+    return;
 }
 
 void ComputeSeries(const int polyoSize)
@@ -959,13 +972,7 @@ void ComputeSeries(const int polyoSize)
     tmp[9] = 1258;
 #endif // USE_DEBUG
 
-    /*
-    for (fh = 0; fh < LIMIT_HOOK; fh++) {
-        for (lh = 0; lh < LIMIT_HOOK; lh++) {
-            nbHook[0][fh][lh][seriesSize-1] = nbHook[0][fh][lh][seriesSize-2];
-        }
-    }
-    */
+    //AddHooksToExactCount(polyoSize);
 
     for (h = LIMIT_HOOK_ARRAY-2; h > 0; h--) {
         PInv(pInv, &nbHook[0][h][h][0], h, 1, seriesSize);
