@@ -78,6 +78,7 @@ void PInv(unsigned long long *ptrPInv, const unsigned long long *ptrOrig, const 
 
     if (min <= offset) {
         printf("PInv error ; ptrOrig must be zero until %d\n", offset);
+        return;
     }
 
     ptrOrigOff = (unsigned long long *) malloc(sizeof(unsigned long long)*nb);
