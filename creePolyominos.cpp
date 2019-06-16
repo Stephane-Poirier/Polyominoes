@@ -5,11 +5,12 @@
 #include <pthread.h>
 #include <limits.h>
 #include <math.h>
+#include <mutex>
 
 #include "border_queue.hpp"
 #include "series.hpp"
 
-//using namespace border_queue;
+std::mutex mtx;           // mutex for critical section in Print_Tableau
 
 #define OK    0
 #define ERROR 1
@@ -146,6 +147,7 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
     char **tab = array->tabLig;
     int x, y;
 
+    mtx.lock();
     printf("----\n");
     if (afficheExt) {
         for (y = 0; y <= array->maxY+1; y++) {
@@ -189,6 +191,7 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
 
     printf("\n minX = %d, maxX = %d\n", array->minX, array->maxX);
     printf("----\n");
+    mtx.unlock();
 }
 
 #ifdef USE_DEBUG
@@ -400,10 +403,10 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
             }
             nbHook[idThread][sizeFirstHook][sizeLastHook][nbCells]++;
 
-            if (nbCells == 6 &&
-                (sizeFirstHook==1 && sizeLastHook==0)) {
+            if (nbCells == 18 &&
+                (sizeFirstHook==7 && sizeLastHook==3)) {
                 Print_Tableau(array, TRUE);
-                printf(" fh %d, lh %d (%ld)\n", sizeFirstHook, sizeLastHook, nbHook[idThread][nbCells][sizeFirstHook][sizeLastHook]);
+                printf(" fh %d, lh %d (%llu)\n", sizeFirstHook, sizeLastHook, nbHook[idThread][nbCells][sizeFirstHook][sizeLastHook]);
             }
 
         }
@@ -936,12 +939,111 @@ int Create_Polyominos(const int size) {
 void AddHooksToExactCount(const int polyoSize) {
     const int limitHook = (polyoSize+1)/2;
     int h, fh, lh, i;
+    int CNK[SIZE_NUMBER_ARRAY][SIZE_NUMBER_ARRAY];
 
-    for (h = limitHook-1; h < LIMIT_HOOK_ARRAY; h++) {
-        nbHook[0][h][h-1][h+h-1] = 1;
-        nbHook[0][h][h][h+h] = 2;
-        if (h < LIMIT_HOOK_ARRAY-1)
-            nbHook[0][h][h+1][h+h+1] = 1;
+    for (h = 0; h < SIZE_NUMBER_ARRAY; h++) {
+        for (i = 0; i < SIZE_NUMBER_ARRAY; i++) {
+            CNK[h][i] = 0;
+        }
+    }
+
+    CNK[0][0] = 1;
+    CNK[1][0] = 1;
+    CNK[1][1] = 1;
+    for (h = 2; h < SIZE_NUMBER_ARRAY; h++) {
+        CNK[h][0] = CNK[h][h] = 1;
+        for (i = 1; i < h; i++) {
+            CNK[h][i] = CNK[h-1][i] + CNK[h-1][i-1];
+        }
+    }
+
+    /* two slices polyominoes : fh,fh-1 (1); fh,fh (2); fh,fh+1 (1) */
+    for (h = limitHook+1; h < LIMIT_HOOK_ARRAY; h++) {
+        if (2*h-1 < SIZE_NUMBER_ARRAY) {
+            nbHook[0][h][h-1][2*h-1] = 1;
+            nbHook[0][h-1][h][2*h-1] = 1;
+            if (2*h < SIZE_NUMBER_ARRAY)
+                nbHook[0][h][h][h+h] = 2;
+        }
+    }
+
+    /* three slices polyominoes */
+    /* cases with fh and fh-1 for the two first slices : 
+       . lh=0 and h cells on third slice : there are CNK[fh][h] - (fh-h+1) (minus is for segments of length h that correspond to hooks)
+       . lh=1 there are fh-2 possibilities (external positioning of cell leads to a reductible polyomino)
+       . lh with 1 < lh < fh-2 there are fh-lh+1 possibilities
+       . lh=fh-2 there are 2 possibilities : in this case there is an exclusion : if the segment lh is in the middle it creates a hook
+       */
+    for (fh = 1; fh < LIMIT_HOOK_ARRAY; fh++) {
+        lh=0;
+        for (h = 2; h < fh && 2*fh-1+h < SIZE_NUMBER_ARRAY; h++) {
+            if (2*fh-1+h > polyoSize)
+                nbHook[0][fh][lh][2*fh-1+h] = nbHook[0][lh][fh][2*fh-1+h] = CNK[fh][h] - (fh-h+1);
+        }
+        lh=1;
+        if (2*fh-1+lh > polyoSize && 2*fh-1+lh < SIZE_NUMBER_ARRAY)
+            nbHook[0][fh][lh][2*fh-1+lh] = nbHook[0][lh][fh][2*fh-1+lh] = fh-2;
+
+        for (lh = 2; lh < fh-2 && lh < SIZE_NUMBER_ARRAY-2*fh+1; lh++) {
+            if (2*fh-1+lh > polyoSize)
+                nbHook[0][fh][lh][2*fh-1+lh] = nbHook[0][lh][fh][2*fh-1+lh] = fh-lh+1;
+        }
+        lh = fh-2;
+        if (lh < SIZE_NUMBER_ARRAY-2*fh+1 && 2*fh-1+lh > polyoSize)
+            nbHook[0][fh][lh][2*fh-1+lh] = nbHook[0][lh][fh][2*fh-1+lh] = fh-lh; 
+    }
+
+    /* case fh and fh for the two first slices :
+       . lh=0 and h cells on third slice : there are 2*(CNK[fh+1][h] - (fh+1-h+1)) (minus is for segments of length h that correspond to hooks) to add to preceding cases
+       . lh=1 there are 2*(fh-1) possibilities (external positioning of cell leads to a reductible polyomino)
+       . lh with 1 < lh < fh-1 there are 2*(fh-lh+2) possibilities
+       . lh=fh-1 there are 2*2 possibilities : in this case there is an exclusion : if the segment lh is in the middle it creates a hook
+       */
+    for (fh = 1; fh < LIMIT_HOOK_ARRAY; fh++) {
+        lh=0;
+        for (h = 2; h < fh+1 && 2*fh+h < SIZE_NUMBER_ARRAY; h++) {
+            if (2*fh+h > polyoSize) {
+                int inc = 2*(CNK[fh+1][h] - (fh-h+2));
+                nbHook[0][fh][lh][2*fh+h] += inc;
+                nbHook[0][lh][fh][2*fh+h] += inc;
+            }
+        }
+        lh=1;
+        if (2*fh+lh > polyoSize && 2*fh+lh < SIZE_NUMBER_ARRAY)
+            nbHook[0][fh][lh][2*fh+lh] = nbHook[0][lh][fh][2*fh+lh] = 2*(fh-1);
+        for (lh = 1; lh < fh-1 && lh < SIZE_NUMBER_ARRAY-2*fh; lh++) {
+            if (2*fh+lh > polyoSize)
+                nbHook[0][fh][lh][2*fh+lh] = nbHook[0][lh][fh][2*fh+lh] = 2*(fh-lh+1);
+        }
+        lh = fh-1;
+        if (lh < SIZE_NUMBER_ARRAY-2*fh && 2*fh+lh > polyoSize)
+            nbHook[0][fh][lh][2*fh+lh] = nbHook[0][lh][fh][2*fh+lh] = 2*(fh+1-lh+1-1);
+    }
+
+    /* if there are more than two slices for a couple of hooks, there are more polyominoes with n than with n-1 
+       FALSE for 3 slices for example hook 7 3 gives 12 polyominoes with 17 cells and 11 with 18 cells !!!!
+    */
+    /*
+    for (fh = 0; fh < LIMIT_HOOK_ARRAY; fh++) {
+        for (lh = 0; lh < LIMIT_HOOK_ARRAY; lh++) {
+            for (i = polyoSize+1; i < SIZE_NUMBER_ARRAY; i++) {
+                if (nbHook[0][fh][lh][i-1] > 2 && nbHook[0][fh][lh][i] < nbHook[0][fh][lh][i-1]) {
+                    nbHook[0][fh][lh][i] = nbHook[0][fh][lh][i-1];
+                }
+            }
+        }
+    }
+    */
+
+    for (fh = 0; fh < LIMIT_HOOK_ARRAY/2; fh++) {
+        for (lh = 0; lh < LIMIT_HOOK_ARRAY/2; lh++) {
+            printf(" first hook %d last hook %d: ", fh, lh);
+            for (i = 1; i < SIZE_NUMBER_ARRAY; i++) {
+                printf(" %llu", nbHook[0][fh][lh][i]);
+            }
+            printf("\n");
+        }
+        printf("\n");
     }
 
     return;
@@ -972,7 +1074,7 @@ void ComputeSeries(const int polyoSize)
     tmp[9] = 1258;
 #endif // USE_DEBUG
 
-    //AddHooksToExactCount(polyoSize);
+    AddHooksToExactCount(polyoSize);
 
     for (h = LIMIT_HOOK_ARRAY-2; h > 0; h--) {
         PInv(pInv, &nbHook[0][h][h][0], h, 1, seriesSize);
