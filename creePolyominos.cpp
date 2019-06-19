@@ -18,9 +18,9 @@ std::mutex mtx;           // mutex for critical section in Print_Tableau
 #define FALSE 0
 #define TRUE  1
 
-#define VIDE       0
-#define IN_QUEUE   -1
-#define NEUTRALISE 100
+#define VIDE       -1
+#define IN_QUEUE   -2
+#define NEUTRALISE -3
 
 #define FIRST_TEST 3
 #define SIZE_NUMBER_ARRAY 64
@@ -37,7 +37,7 @@ typedef struct {
     int cellsNb;
     int firstX;
     int lastX;
-    int nbExt;
+    int nbExt; // number of cells of the slice that are in the queue
     int nextTransitionReductible;
 } SLICE;
 
@@ -64,7 +64,7 @@ ARRAY *arrayList[NB_THREADS][SIZE_NUMBER_ARRAY];
 
 ARRAY *Create_Array(const int targetSize) {
     ARRAY *array = (ARRAY *) malloc(sizeof(ARRAY));
-    struct border_queue::border_queue *tmp = new border_queue(3*targetSize+3);
+    struct border_queue::border_queue *tmp = new border_queue(2*targetSize+3);
     if (array == NULL) {
         printf("Impossible d'allouer un objet de type ARRAY");
         return NULL;
@@ -154,6 +154,8 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
             for (x = 0; x < 2*size-1; x++) {
                 if (tab[y][x] == NEUTRALISE)
                     printf("..");
+                else if (tab[y][x] == VIDE)
+                    printf("  ");
                 else if (tab[y][x] > 0)
                     printf("%2d", tab[y][x]);
                 else if (tab[y][x] < 0) {
@@ -329,15 +331,15 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
                     realHook = TRUE;
                     for (x = fx; x <lx; x++) {
                         /* previous slice */
-                        if (array->tabLig[slice-x-1][x] == NEUTRALISE ||
-                            array->tabLig[slice-x-1][x] == VIDE ||
+                        if (/*array->tabLig[slice-x-1][x] == NEUTRALISE ||
+                            array->tabLig[slice-x-1][x] == VIDE ||*/
                             array->tabLig[slice-x-1][x] < 0) {
                             realHook = FALSE;
                             break;
                         }
                         /* next slice */
-                        if (array->tabLig[slice-x][x+1] == NEUTRALISE ||
-                            array->tabLig[slice-x][x+1] == VIDE ||
+                        if (/*array->tabLig[slice-x][x+1] == NEUTRALISE ||
+                            array->tabLig[slice-x][x+1] == VIDE ||*/
                             array->tabLig[slice-x][x+1] < 0) {
                             realHook = FALSE;
                             break;
@@ -367,8 +369,8 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
 
                 for (x = fx; x <lx; x++) {
                     /* next slice */
-                    if (array->tabLig[slice-x][x+1] == NEUTRALISE ||
-                        array->tabLig[slice-x][x+1] == VIDE ||
+                    if (/*array->tabLig[slice-x][x+1] == NEUTRALISE ||
+                        array->tabLig[slice-x][x+1] == VIDE || */
                         array->tabLig[slice-x][x+1] < 0) {
                         realHook = FALSE;
                         break;
@@ -390,8 +392,8 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
 
                 for (x = fx; x <lx; x++) {
                     /* previous slice */
-                    if (array->tabLig[slice-x-1][x] == NEUTRALISE ||
-                        array->tabLig[slice-x-1][x] == VIDE ||
+                    if (/*array->tabLig[slice-x-1][x] == NEUTRALISE ||
+                        array->tabLig[slice-x-1][x] == VIDE || */
                         array->tabLig[slice-x-1][x] < 0) {
                         realHook = FALSE;
                         break;
@@ -481,20 +483,20 @@ int Limits_Array(ARRAY *array, int nvFirstSlice) {
     }
 
     if (maxSliceExt != -1 && maxSliceExt < maxSliceOne &&
-        minSliceOne != -1 && minSliceOne < minSliceExt) {
+        /*minSliceOne != -1 &&*/ minSliceOne < minSliceExt) {
         neededDist = maxSliceOne-maxSliceExt+1 +minSliceExt-minSliceOne+1;
         if (neededDist == nbLeft) {
-#ifdef RUN_DEBUG
+//#ifdef RUN_DEBUG
         for (slice = minSliceExt+1; slice < maxSliceExt; slice++) {
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] < 0 ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
             }
         }
-#endif
+//#endif
         }
         else if (neededDist > nbLeft) {
             return TRUE;
@@ -506,7 +508,7 @@ int Limits_Array(ARRAY *array, int nvFirstSlice) {
         for (slice = minSliceExt; slice < maxSliceExt; slice++) {
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] < 0 ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
@@ -528,7 +530,7 @@ int Limits_Array(ARRAY *array, int nvFirstSlice) {
         for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] < 0 ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
@@ -552,7 +554,7 @@ if (IsArray_Debug(array) && array->polySize <= 12) {
         for (slice = minSliceExt; slice < maxSliceExt; slice++) {
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] < 0 ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
@@ -574,7 +576,7 @@ if (IsArray_Debug(array) && array->polySize <= 12) {
         for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] < 0 ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
@@ -698,6 +700,8 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
         int xx, yy;
 
         while (arrayIn->bq->border_dequeue(&x, &y) == true) {
+            if (arrayIn->tabLig[y][x] == NEUTRALISE) continue;
+
             int tooMuchSlices = FALSE;
             char inVal = arrayIn->tabLig[y][x];
 //printf(" (x,y) = (%d, %d)\n", x, y);
@@ -808,8 +812,8 @@ int Create_Polyominos(const int size) {
         array->maxY = 0;
         array->maxX = array->minX = size-1;
         array->firstSlice = array->lastSlice = size - 1;
-        array->tabLig[0][size] = -2;
-        array->tabLig[1][size-1] = -3;
+        array->tabLig[0][size] = IN_QUEUE;
+        array->tabLig[1][size-1] = IN_QUEUE;
         array->bq->border_enqueue(size, 0);
         array->bq->border_enqueue(size-1, 1);
         array->slices[size].nbExt = 2;
@@ -839,9 +843,9 @@ int Create_Polyominos(const int size) {
         array->maxX = size;
         array->firstSlice = size - 1;
         array->lastSlice  = size;
-        array->tabLig[0][size+1] = -4;
-        array->tabLig[1][size] = -5;
-        array->tabLig[1][size-1] = -3;
+        array->tabLig[0][size+1] = IN_QUEUE;
+        array->tabLig[1][size] = IN_QUEUE;
+        array->tabLig[1][size-1] = IN_QUEUE;
         array->bq->border_enqueue(size+1, 0);
         array->bq->border_enqueue(size, 1);
         array->bq->border_enqueue(size-1, 1);
@@ -874,9 +878,9 @@ int Create_Polyominos(const int size) {
         array->firstSlice = size - 1;
         array->lastSlice  = size;
         array->tabLig[0][size] = NEUTRALISE;
-        array->tabLig[1][size-2] = -3;
-        array->tabLig[1][size] = -4;
-        array->tabLig[2][size-1] = -5;
+        array->tabLig[1][size-2] = IN_QUEUE;
+        array->tabLig[1][size] = IN_QUEUE;
+        array->tabLig[2][size-1] = IN_QUEUE;
         array->bq->border_enqueue(size-2, 1);
         array->bq->border_enqueue(size, 1);
         array->bq->border_enqueue(size-1, 2);
@@ -1074,7 +1078,7 @@ void ComputeSeries(const int polyoSize)
     tmp[9] = 1258;
 #endif // USE_DEBUG
 
-    AddHooksToExactCount(polyoSize);
+    //AddHooksToExactCount(polyoSize);
 
     for (h = LIMIT_HOOK_ARRAY-2; h > 0; h--) {
         PInv(pInv, &nbHook[0][h][h][0], h, 1, seriesSize);
@@ -1092,21 +1096,23 @@ void ComputeSeries(const int polyoSize)
         }
         MultAdd(&nbHook[0][0][0][0], nbHook[0][h][h], pInv, seriesSize);
 
+/*
         if (h == 1) {
-        for (fh = 0; fh < h; fh++) {
-            for (lh = 0; lh < h; lh++) {
-                printf(" first hook %d last hook %d (irreducible polyominoes) : ", fh, lh);
-                printf("  exacts :\n");
-                for (i = 1; i <= polyoSize; i++)
-                    printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
-                printf("  approximated :\n");
-                for (i = polyoSize+1; i < seriesSize; i++)
-                    printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
+            for (fh = 0; fh < h; fh++) {
+                for (lh = 0; lh < h; lh++) {
+                    printf(" first hook %d last hook %d (irreducible polyominoes) : ", fh, lh);
+                    printf("  exacts :\n");
+                    for (i = 1; i <= polyoSize; i++)
+                        printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
+                    printf("  approximated :\n");
+                    for (i = polyoSize+1; i < seriesSize; i++)
+                        printf("   %d : %llu (%f)\n", i, nbHook[0][fh][lh][i], pow(nbHook[0][fh][lh][i], 1./i));
+                    printf("\n");
+                }
                 printf("\n");
             }
-            printf("\n");
         }
-        }
+        */
     }
     PInv(pInv, &nbHook[0][0][0][0], 0, 2, seriesSize);
     Mult(tmp2, &nbHook[0][0][0][0], pInv, seriesSize);
