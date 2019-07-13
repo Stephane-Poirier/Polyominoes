@@ -22,11 +22,28 @@ std::mutex mtx;           // mutex for critical section in Print_Tableau
 #define IN_QUEUE   -2
 #define NEUTRALISE -3
 
-#define FIRST_TEST 3
+#define FIRST_TEST 2
 #define SIZE_NUMBER_ARRAY 64
 #define LIMIT_HOOK_ARRAY (SIZE_NUMBER_ARRAY+1)
 
 #define NB_THREADS 2
+
+#define COUNT_EXT_REDUCTION
+
+#ifdef COUNT_EXT_REDUCTION
+long long nbExtRed_minMaxOne = 0;
+long long nbExtRed_minOne = 0;
+long long nbExtRed_maxOne = 0;
+long long nbExtRed_minMaxRed = 0;
+long long nbExtRed_minRed = 0;
+long long nbExtRed_minRed2 = 0;
+long long nbExtRed_maxRed = 0;
+long long nbExtRed_maxRed2 = 0;
+
+#define NB_LOCAL_COUNT 20
+long long local_count[NB_LOCAL_COUNT];
+
+#endif
 
 unsigned long long nbAll[NB_THREADS][SIZE_NUMBER_ARRAY];
 unsigned long long nbIrr[NB_THREADS][SIZE_NUMBER_ARRAY];
@@ -153,13 +170,13 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
         for (y = 0; y <= array->maxY+1; y++) {
             for (x = 0; x < 2*size-1; x++) {
                 if (tab[y][x] == NEUTRALISE)
-                    printf("..");
+                    printf("./");
                 else if (tab[y][x] == VIDE)
                     printf("  ");
                 else if (tab[y][x] > 0)
                     printf("%2d", tab[y][x]);
                 else if (tab[y][x] < 0) {
-                    printf("XX");
+                    printf("Q/");
                 }
                 else
                     printf("  ");
@@ -186,12 +203,14 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
         }
     }
 
+    printf("cellsNb, firstX, lastX, nbQueue, nextTransRed\n");
     for (x = array->firstSlice-1; x <= array->lastSlice+1; x++) {
         printf("  slice[%d] = (%d, %d, %d, %d, %d)\n", x, array->slices[x].cellsNb, array->slices[x].firstX,
                array->slices[x].lastX, array->slices[x].nbExt, array->slices[x].nextTransitionReductible);
     }
 
     printf("\n minX = %d, maxX = %d\n", array->minX, array->maxX);
+    array->bq->print();
     printf("----\n");
     mtx.unlock();
 }
@@ -353,6 +372,18 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
             }
         }
     }
+#ifdef COUNT_EXT_REDUCTION
+            //toto
+    /*
+    if (idThread == 1 
+        && array->tabLig[1][size-2] == 3
+        && array->tabLig[2][size-1] == 4
+        && array->tabLig[1][size-3] == 5
+        && array->tabLig[1][size-4] == 6
+        && array->tabLig[1][size-5] == 7 && nbCells < 12)
+            Print_Tableau(array, TRUE);
+            */
+#endif
 
     if (isIrreductible == TRUE) {
         nbIrr[idThread][nbCells]++;
@@ -404,16 +435,44 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
                 }
             }
             nbHook[idThread][sizeFirstHook][sizeLastHook][nbCells]++;
-
-            if (nbCells == 18 &&
-                (sizeFirstHook==7 && sizeLastHook==3)) {
+#ifdef COUNT_EXT_REDUCTION
+            //toto
+    if (idThread == 1 
+        && array->tabLig[1][size-2] == 3
+        && array->tabLig[2][size-1] == 4
+        && array->tabLig[1][size-3] == 5
+        && array->tabLig[1][size-4] == 6
+        && array->tabLig[1][size-5] == 7) {
+        if (sizeFirstHook == 2 && sizeLastHook == 1 && nbCells == 12 && size == 12) {
+            int id_loc = 7;
+            //Print_Tableau(array, TRUE);
+            if (array->tabLig[2][size-3] == id_loc)
+                local_count[0]++;
+            else if (array->tabLig[1][size-5] == id_loc) {
+                local_count[1]++;
+            }
+            else if (array->tabLig[2][size-4] == id_loc)
+                local_count[2]++;
+        }
+    }
+#endif
+            if (nbCells == 1115 &&
+                (sizeFirstHook==4 && sizeLastHook==3)) {
                 Print_Tableau(array, TRUE);
                 printf(" fh %d, lh %d (%llu)\n", sizeFirstHook, sizeLastHook, nbHook[idThread][nbCells][sizeFirstHook][sizeLastHook]);
             }
 
         }
     }
+    /*
+    else if (nbCells<=3) {
+        Print_Tableau(array, TRUE);
+    }
+    */
 
+    //if (nbCells==4 and array->tabLig[3][size-1] == 4) Print_Tableau(array, TRUE);
+    //if (nbCells==7) Print_Tableau(array, TRUE);
+    //if (array->tabLig[3][size-2] == 6) Print_Tableau(array, TRUE);
     nbAll[idThread][nbCells]++;
 }
 
@@ -445,13 +504,18 @@ int Limits_Array(ARRAY *array, int nvFirstSlice) {
             !array->slices[slice].nextTransitionReductible) {
             minCellsToAdd++;
             maxSliceOne = slice;
-            if (minSliceOne == -1) minSliceOne = slice;
+            if (minSliceOne == -1) {
+                        #ifdef COUNT_EXT_REDUCTION
+                            if (minSliceExt == -1) nbExtRed_minOne++;
+                        #endif
+                minSliceOne = slice;
+            }
         }
         else if (array->slices[slice].nextTransitionReductible) {
             int ReducTransitionSegLg = 0;
             int OnesInSeg = 0;
 
-            if (minSliceRed == -1) minSliceRed = slice;
+            if (minSliceRed == -1) minSliceRed = slice + 1; // +1 because adding a cell to next slice may remove reductibility
             while (slice < array->lastSlice && array->slices[slice].nextTransitionReductible) {
                 maxSliceRed = slice;
                 ReducTransitionSegLg++;
@@ -484,110 +548,180 @@ int Limits_Array(ARRAY *array, int nvFirstSlice) {
 
     if (maxSliceExt != -1 && maxSliceExt < maxSliceOne &&
         /*minSliceOne != -1 &&*/ minSliceOne < minSliceExt) {
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_minMaxOne++;
+                        #endif
         neededDist = maxSliceOne-maxSliceExt+1 +minSliceExt-minSliceOne+1;
+        if (maxSliceExt == minSliceExt) neededDist--;
         if (neededDist == nbLeft) {
-//#ifdef RUN_DEBUG
-        for (slice = minSliceExt+1; slice < maxSliceExt; slice++) {
-            xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
-            for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
-                    array->slices[slice].nbExt--;
-                    array->tabLig[slice -x][x] = NEUTRALISE;
+            for (slice = minSliceExt+1; slice < maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                    }
                 }
             }
-        }
-//#endif
         }
         else if (neededDist > nbLeft) {
             return TRUE;
         }
     }
     else if (maxSliceExt != -1 && maxSliceExt < maxSliceOne) {
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_maxOne++;
+                        #endif
         neededDist = maxSliceOne-maxSliceExt+1;
         if (neededDist == nbLeft) {
-        for (slice = minSliceExt; slice < maxSliceExt; slice++) {
+            for (slice = minSliceExt; slice < maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                    }
+                }
+            }
+            /* maxSliceExt plus deviation */
+            /*
+            slice = maxSliceExt;
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
             for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE and array->tabLig[slice+1-(x+1)][x+1] != VIDE  and array->tabLig[slice+1-x][x] != VIDE) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
             }
-        }
+            */
         }
         else if (neededDist > nbLeft) {
             return TRUE;
         }
     }
     else if (minSliceOne != -1 && minSliceOne < minSliceExt) {
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_minOne++;
+                        #endif
         neededDist = minSliceExt-minSliceOne+1;
         if (neededDist == nbLeft) {
-/*if (IsArray_Debug(array) && array->polySize <= 12) {
-    printf(" maxSliceExt %d maxSliceOne %d\n", maxSliceExt, maxSliceOne);
-    Print_Tableau(array, TRUE);
-}
-*/
-        for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
+            for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                    }
+                }
+            }
+            /* minSliceExt plus deviation */
+            /*
+            slice = minSliceExt;
             xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
-            for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+            for (x = xDeb; x < slice ; x++) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE and array->tabLig[slice-1-(x-1)][x-1] != VIDE  and array->tabLig[slice-1-x][x] != VIDE) {
                     array->slices[slice].nbExt--;
                     array->tabLig[slice -x][x] = NEUTRALISE;
                 }
             }
-        }
-/*
-if (IsArray_Debug(array) && array->polySize <= 12) {
-//    printf(" maxSliceExt %d maxSliceOne %d", maxSliceExt, maxSliceOne);
-//    Print_Tableau(array, TRUE);
-}
-*/
+            */
         }
         else if (neededDist > nbLeft) {
             return TRUE;
         }
     }
 
-    if (maxSliceExt != -1 && maxSliceExt < maxSliceRed) {
-        neededDist = maxSliceRed-maxSliceExt+1;
+    if (maxSliceExt != -1 && maxSliceExt < maxSliceRed &&
+        /*minSliceOne != -1 &&*/ minSliceRed < minSliceExt) {
+        //toto
+#ifdef COUNT_EXT_REDUCTION
+        nbExtRed_minMaxRed++;
+    /*
+    if (array->tabLig[1][array->targetSize-2] == 3
+        && array->tabLig[2][array->targetSize-1] == 4
+        && array->tabLig[1][array->targetSize-3] == 5
+        && array->tabLig[1][array->targetSize-4] == 6
+        && array->tabLig[1][array->targetSize-5] == 7)
+            Print_Tableau(array, TRUE);
+      */  
+#endif
+        neededDist = maxSliceRed-maxSliceExt+1 +minSliceExt-minSliceRed+1;
+        if (maxSliceExt == minSliceExt) neededDist--;
+
         if (neededDist == nbLeft) {
-        for (slice = minSliceExt; slice < maxSliceExt; slice++) {
-            xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
-            for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
-                    array->slices[slice].nbExt--;
-                    array->tabLig[slice -x][x] = NEUTRALISE;
+            for (slice = minSliceExt+1; slice < maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                    }
                 }
             }
         }
+        else if (neededDist > nbLeft) {
+            return TRUE;
+        }
+    }
+    else if (maxSliceExt != -1 && maxSliceExt < maxSliceRed) {
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_maxRed++;
+                        #endif
+        neededDist = maxSliceRed-maxSliceExt+1;
+        if (neededDist == nbLeft) {
+            for (slice = minSliceExt; slice < maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                    }
+                }
+            }
+            /* maxSliceExt plus deviation */
+            slice = maxSliceExt;
+            xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+            for (x = xDeb; x <= slice ; x++) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE and array->tabLig[slice+1-(x+1)][x+1] != VIDE  and array->tabLig[slice+1-x][x] != VIDE) {
+                    array->slices[slice].nbExt--;
+                    array->tabLig[slice -x][x] = NEUTRALISE;
+                    #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_maxRed2++;
+                        #endif
+                }
+            }
         }
         else if (neededDist > nbLeft) {
             return TRUE;
         }
     }
     else if (minSliceRed != -1 && minSliceRed < minSliceExt) {
-        neededDist = minSliceExt-minSliceRed;
+        neededDist = minSliceExt-minSliceRed+1;
         if (neededDist == nbLeft) {
-/*if (IsArray_Debug(array) && array->polySize <= 12) {
-    printf(" maxSliceExt %d maxSliceOne %d\n", maxSliceExt, maxSliceOne);
-    Print_Tableau(array, TRUE);
-}
-*/
-        for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
-            xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
-            for (x = xDeb; x <= slice ; x++) {
-                if (array->tabLig[slice-x][x] == IN_QUEUE ) {
-                    array->slices[slice].nbExt--;
-                    array->tabLig[slice -x][x] = NEUTRALISE;
+            for (slice = minSliceExt+1; slice <= maxSliceExt; slice++) {
+                xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 0;
+                for (x = xDeb; x <= slice ; x++) {
+                    if (array->tabLig[slice-x][x] == IN_QUEUE ) {
+                        array->slices[slice].nbExt--;
+                        array->tabLig[slice -x][x] = NEUTRALISE;
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_minRed++;
+                        #endif
+                    }
                 }
             }
-        }
-/*
-if (IsArray_Debug(array) && array->polySize <= 12) {
-//    printf(" maxSliceExt %d maxSliceOne %d", maxSliceExt, maxSliceOne);
-//    Print_Tableau(array, TRUE);
-}
-*/
+            /* minSliceExt plus deviation */
+            slice = minSliceExt;
+            xDeb = (slice >= array->nbLig) ? slice - array->nbLig + 1: 1;
+            for (x = xDeb; x < slice ; x++) {
+                if (array->tabLig[slice-x][x] == IN_QUEUE and array->tabLig[slice-1-(x-1)][x-1] != VIDE  and array->tabLig[slice-1-x][x] != VIDE) {
+                    array->slices[slice].nbExt--;
+                    array->tabLig[slice -x][x] = NEUTRALISE;
+                        #ifdef COUNT_EXT_REDUCTION
+                            nbExtRed_minRed2++;
+                        #endif
+                }
+            }
         }
         else if (neededDist > nbLeft) {
             return TRUE;
@@ -620,7 +754,7 @@ if (IsArray_Debug(array) && array->polySize <= 12) {
                 //printf("s");
                 break;
             }
-            if (array->tabLig[slice -x][x] < 0) array->slices[slice].nbExt--;
+            if (array->tabLig[slice -x][x] == IN_QUEUE) array->slices[slice].nbExt--;
             array->tabLig[slice -x][x] = NEUTRALISE;
         }
     }
@@ -657,6 +791,26 @@ void UpdateSlice(ARRAY *array, int y, int x) {
             precSlice->nextTransitionReductible = FALSE;
     }
 
+    int xDeb = (y+x >= array->nbLig) ? y+x - array->nbLig + 1: 0;
+/*
+    int slice_id;
+
+    // to verify values of nbExt in slices
+    if (array->polySize < array->targetSize)
+    for (slice_id = array->firstSlice-1; slice_id < array->lastSlice+1; slice_id++)
+    {
+        int cur_nbExt = 0;
+        xDeb = (slice_id >= array->nbLig) ? slice_id - array->nbLig + 1: 0;
+
+        for (int i = xDeb; i <= slice_id; i++)
+            if (array->tabLig[slice_id-i][i] == IN_QUEUE) cur_nbExt++;
+
+        if (cur_nbExt != array->slices[slice_id].nbExt) {
+            Print_Tableau(array, TRUE);
+            break;
+        }
+    }
+    */
 }
 
 
@@ -700,17 +854,21 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
         int xx, yy;
 
         while (arrayIn->bq->border_dequeue(&x, &y) == true) {
+            //printf(" (x,y) = (%d, %d)\n", x, y);
+
             if (arrayIn->tabLig[y][x] == NEUTRALISE) continue;
 
             int tooMuchSlices = FALSE;
             char inVal = arrayIn->tabLig[y][x];
-//printf(" (x,y) = (%d, %d)\n", x, y);
+
+            arrayIn->slices[y+x].nbExt--;
+            arrayIn->tabLig[y][x] = NEUTRALISE; 
 
             status = Copy_Array(arrayNv, arrayIn);
 //printf(" (x,y) = (%d, %d)\n", x, y);
 
             arrayNv->tabLig[y][x] = arrayIn->polySize + 1;
-            arrayNv->slices[y+x].nbExt--;
+            //arrayNv->slices[y+x].nbExt--;
             arrayNv->polySize = arrayIn->polySize + 1;
             if (y > arrayNv->maxY) {
                 arrayNv->maxY = y;
@@ -750,11 +908,11 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
             }
 
             tooMuchSlices = Limits_Array(arrayNv, x+y);
+
             if (tooMuchSlices == TRUE)
                 continue;
 
             status = Add_Element_Array(arrayNv, idThread);
-            arrayIn->tabLig[y][x] = NEUTRALISE;
         }
     }
 
@@ -820,6 +978,7 @@ int Create_Polyominos(const int size) {
         Limits_Array(array,size-1);
         Limits_Array(array, size);
 
+        //Print_Tableau(array, TRUE);
         //status = Add_Element_Array_WithoutQueue(array, 3, 0/* idThread*/);
         status = Add_Element_Array(array, 0/* idThread*/);
     }
@@ -846,9 +1005,9 @@ int Create_Polyominos(const int size) {
         array->tabLig[0][size+1] = IN_QUEUE;
         array->tabLig[1][size] = IN_QUEUE;
         array->tabLig[1][size-1] = IN_QUEUE;
+        array->bq->border_enqueue(size-1, 1);
         array->bq->border_enqueue(size+1, 0);
         array->bq->border_enqueue(size, 1);
-        array->bq->border_enqueue(size-1, 1);
         array->slices[size].nbExt = 1;
         array->slices[size+1].nbExt = 2;
         Limits_Array(array,size-1);
@@ -910,6 +1069,22 @@ int Create_Polyominos(const int size) {
             }
         }
     }
+
+#ifdef COUNT_EXT_REDUCTION
+    for (t = 0; t < NB_THREADS; t++) {
+        printf("thread %d\n",t);
+        for (hf = 0; hf <= limitHook; hf++) {
+            for (hl = 0; hl <= limitHook; hl++) {
+                printf(" first hook %d last hook %d: ", hf, hl);
+                for (i = 1; i <= size; i++) {
+                    printf(" %llu", nbHook[t][hf][hl][i]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }
+#endif
 
     for (i = FIRST_TEST; i <= size; i++) {
         printf("taille des polyominos : %d\n", i);
@@ -1137,6 +1312,11 @@ int main(int argc, char *argv[])
     int max = 18;
     int t,s;
 
+#ifdef COUNT_EXT_REDUCTION
+    for (t = 0; t < NB_LOCAL_COUNT; t++)
+        local_count[t] = 0;
+#endif
+
     if (argc >= 2) {
         int input_max = atoi(argv[1]);
 
@@ -1160,6 +1340,24 @@ int main(int argc, char *argv[])
 
     tf = time(NULL);
     printf("time %ld\n", tf-td);
+#ifdef COUNT_EXT_REDUCTION
+    printf(" nb Ext reduction :\n");
+    printf("  minMaxOne : %llu\n", nbExtRed_minMaxOne);
+    printf("  minOne    : %llu\n", nbExtRed_minOne);
+    printf("  maxOne    : %llu\n", nbExtRed_maxOne);
+    printf("  minMaxRed : %llu\n", nbExtRed_minMaxRed);
+    printf("  minRed    : %llu\n", nbExtRed_minRed);
+    printf("  minRed2   : %llu\n", nbExtRed_minRed2);
+    printf("  maxRed    : %llu\n", nbExtRed_maxRed);
+    printf("  maxRed2   : %llu\n", nbExtRed_maxRed2);
+    printf("\n");
+    s = 0;
+    for (t = 0; t < NB_LOCAL_COUNT; t++) {
+        printf("   local_count[%d] = %llu \n", t, local_count[t]);
+        s+= (int) local_count[t];
+    }
+    printf("sum = %d\n", s);
+#endif
 
     ComputeSeries(max);
     //unsigned long long t_llu = ULONG_LONG_MAX;

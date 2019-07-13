@@ -49,3 +49,18 @@ bool border_queue::border_dequeue(int *x, int *y) {
 
 	return true;
 }
+
+void border_queue::print() {
+	printf(" queue : head %d, tail %d\n", head, tail);
+	if (head == tail) printf(". empty queue");
+	else if (head < tail) {
+		int i;
+		for (i = head; i < tail; i++) printf("(%d, %d) ", buffer_x[i], buffer_y[i]);
+	}
+	else {
+		int i;
+		for (i = head; i < size; i++) printf("(%d, %d) ", buffer_x[i], buffer_y[i]);
+		for (i = 0; i < tail; i++) printf("(%d, %d) ", buffer_x[i], buffer_y[i]);
+	}
+	printf("\n");
+}
