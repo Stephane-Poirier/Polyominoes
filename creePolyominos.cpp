@@ -28,8 +28,7 @@ std::mutex mtx;           // mutex for critical section in Print_Tableau
 
 #define NB_THREADS 2
 
-#define COUNT_EXT_REDUCTION
-
+#undef COUNT_EXT_REDUCTION
 #ifdef COUNT_EXT_REDUCTION
 long long nbExtRed_minMaxOne = 0;
 long long nbExtRed_minOne = 0;
@@ -43,6 +42,13 @@ long long nbExtRed_maxRed2 = 0;
 #define NB_LOCAL_COUNT 20
 long long local_count[NB_LOCAL_COUNT];
 
+#endif
+
+#undef SEARCH_MIN_MAX
+#ifdef SEARCH_MIN_MAX
+int xmin_all = 10000;
+int xmax_all = -1;
+int ymax_all = -1;
 #endif
 
 unsigned long long nbAll[NB_THREADS][SIZE_NUMBER_ARRAY];
@@ -87,8 +93,8 @@ ARRAY *Create_Array(const int targetSize) {
         return NULL;
     }
     array->targetSize = targetSize;
-    array->nbLig = targetSize;
-    array->nbCol = (2*targetSize-1);
+    array->nbLig = targetSize - (targetSize/3) + 1;
+    array->nbCol = targetSize+(targetSize)/2; // (2*targetSize-1);
     array->tabLig = (char **) malloc(array->nbLig * sizeof(char *));
     array->buffer = (char *) malloc(array->nbCol * array->nbLig * sizeof(char));
     array->nbSlices = array->nbCol+array->nbLig - 1;
@@ -123,7 +129,7 @@ ARRAY *Create_Array(const int targetSize) {
 
 
 int Init_Array(ARRAY *array) {
-    int size = array->nbLig;
+    int size = array->targetSize;
     int status = OK;
     int s;
 
@@ -168,7 +174,7 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
     printf("----\n");
     if (afficheExt) {
         for (y = 0; y <= array->maxY+1; y++) {
-            for (x = 0; x < 2*size-1; x++) {
+            for (x = 0; x < array->nbCol; x++) {
                 if (tab[y][x] == NEUTRALISE)
                     printf("./");
                 else if (tab[y][x] == VIDE)
@@ -185,12 +191,12 @@ void Print_Tableau(ARRAY *array, const int afficheExt) {
         }
     }
     else {
-        for (x = 0; x < 2*size-1; x++) {
+        for (x = 0; x < array->nbCol; x++) {
             printf("%2d",x);
         }
         printf("\n");
         for (y = 0; y < size; y++) {
-            for (x = 0; x < 2*size-1; x++) {
+            for (x = 0; x < array->nbCol; x++) {
                 if (tab[y][x] > 0 && tab[y][x] != NEUTRALISE)
                     printf("%2d", tab[y][x]);
                 else if (tab[y][x] < 0) {
@@ -307,7 +313,7 @@ void Destroy_Array(ARRAY *array) {
 
 void Test_Array(ARRAY *array, int idThread, const int limitHook) {
     const int nbCells = array->polySize;
-    const int size = (const int) array->nbLig;
+    const int size = (const int) array->targetSize;
     const int lgTab = (const int) array->nbCol;
 
     int slice, x, y;
@@ -323,6 +329,11 @@ void Test_Array(ARRAY *array, int idThread, const int limitHook) {
     int maxXPrec = -1;
     int nbInSlicePrec = -1;
 
+#ifdef SEARCH_MIN_MAX
+    if (xmin_all > array->minX) xmin_all = array->minX;
+    if (xmax_all < array->maxX) xmax_all = array->maxX;
+    if (ymax_all < array->maxY) ymax_all = array->maxY;
+#endif // SEARCH_X_MIN_MAX
 
     nbFirst = array->slices[array->firstSlice].cellsNb;
     nbLast  = array->slices[array->lastSlice].cellsNb;
@@ -815,7 +826,7 @@ void UpdateSlice(ARRAY *array, int y, int x) {
 
 
 int Add_Element_Array(ARRAY *arrayIn, int idThread) {
-    const int limitHook = (arrayIn->nbLig+1)/2;
+    const int limitHook = (arrayIn->targetSize+1)/2;
     int status = OK;
     int x, y;
 
@@ -823,7 +834,7 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
         Test_Array(arrayIn, idThread, limitHook);
     }
 
-    if (arrayIn->polySize == arrayIn->nbLig - 1) {
+    if (arrayIn->polySize == arrayIn->targetSize - 1) {
         int fSliceIn = arrayIn->firstSlice;
         int lSliceIn = arrayIn->lastSlice;
         SLICE sliceIn;
@@ -850,7 +861,7 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
     }
     else
         {
-        ARRAY *arrayNv = arrayList[idThread][arrayIn->polySize+1]; // Create_Array(arrayIn->nbLig);
+        ARRAY *arrayNv = arrayList[idThread][arrayIn->polySize+1];
         int xx, yy;
 
         while (arrayIn->bq->border_dequeue(&x, &y) == true) {
@@ -887,21 +898,21 @@ int Add_Element_Array(ARRAY *arrayIn, int idThread) {
             }
             xx = x - 1;
             yy = y;
-            if (xx >= 0 && arrayNv->tabLig[yy][xx] == VIDE) {
+            if (/*xx >= 0 &&*/ arrayNv->tabLig[yy][xx] == VIDE) {
                 arrayNv->bq->border_enqueue(xx, yy);
                 arrayNv->tabLig[yy][xx] = IN_QUEUE;
                 arrayNv->slices[yy+xx].nbExt++;
             }
             xx = x + 1;
             yy = y;
-            if (xx < arrayNv->nbCol && arrayNv->tabLig[yy][xx] == VIDE) {
+            if (/*xx < arrayNv->nbCol &&*/ arrayNv->tabLig[yy][xx] == VIDE) {
                 arrayNv->bq->border_enqueue(xx, yy);
                 arrayNv->tabLig[yy][xx] = IN_QUEUE;
                 arrayNv->slices[yy+xx].nbExt++;
             }
             xx = x;
             yy = y + 1;
-            if (yy < arrayIn->nbLig && arrayNv->tabLig[yy][xx] == VIDE) {
+            if (/*yy < arrayIn->nbLig &&*/ arrayNv->tabLig[yy][xx] == VIDE) {
                 arrayNv->bq->border_enqueue(xx, yy);
                 arrayNv->tabLig[yy][xx] = IN_QUEUE;
                 arrayNv->slices[yy+xx].nbExt++;
@@ -1358,7 +1369,11 @@ int main(int argc, char *argv[])
     }
     printf("sum = %d\n", s);
 #endif
-
+#ifdef SEARCH_MIN_MAX
+    printf("  xmin_all : %d\n", xmin_all);
+    printf("  xmax_all : %d\n", xmax_all);
+    printf("  ymax_all : %d\n", ymax_all);
+#endif // SEARCH_X_MIN_MAX
     ComputeSeries(max);
     //unsigned long long t_llu = ULONG_LONG_MAX;
     //printf("\n %llu\n",t_llu);
